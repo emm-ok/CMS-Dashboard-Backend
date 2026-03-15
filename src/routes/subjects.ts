@@ -9,8 +9,8 @@ subjectsRouter.get("/", async (req, res) => {
     try{
         const { search, department, page = 1, limit = 10} = req.query;
 
-        const currentPage = Math.max(1, +page);
-        const limitPerPage = Math.max(1, +limit);
+        const currentPage = Math.max(1, parseInt(String(page), 10) || 1 );
+        const limitPerPage = Math.min(Math.max(1, parseInt(String(limit), 10) || 10 ), 100);
 
         const offset = (currentPage - 1) * limitPerPage;
 
@@ -25,8 +25,9 @@ subjectsRouter.get("/", async (req, res) => {
             );
         }
 
-        if(departments){
-            filterConditions.push(ilike(departments.name, `%${department}%`))
+        if(department){
+            const deptPattern = `%${String(department).replace(/[%_]/g, '\\$&')}%`;
+            filterConditions.push(ilike(departments.name, deptPattern));
         }
 
         const whereClause = filterConditions.length > 0 ? and(...filterConditions) : undefined;
@@ -49,9 +50,9 @@ subjectsRouter.get("/", async (req, res) => {
             .limit(limitPerPage)
             .offset(offset)
 
-        res.status(200).json({
+        return res.status(200).json({
              data: subjectsList,
-             departments,
+             department,
              pagination: {
                 page: currentPage,
                 limit: limitPerPage,
